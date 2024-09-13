@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento Interno</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+        }
+
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 1em;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #343a40;
+            color: white;
+            padding: 0.5em;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: center;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+
+        main {
+            padding: 3em 2em;
+            margin-top: 3em;
+        }
+
+        section {
+            margin-bottom: 2em;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            font-size: 1em;
+            cursor: pointer;
+            border-radius: 0.3em;
+            margin: 0.5em;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #grafico-caixa {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Sistema de Gerenciamento - Empresa de Impressões Gráficas</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#estoque" onclick="mostrarPagina('estoque')">Gerenciamento de Estoque</a></li>
+            <li><a href="#caixa" onclick="mostrarPagina('caixa')">Gerenciamento de Caixa</a></li>
+            <li><a href="#desempenho" onclick="mostrarPagina('desempenho')">Desempenho dos Funcionários</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section id="pagina-inicial">
+            <h2>Bem-vindo, Chefe!</h2>
+            <p>Selecione uma das opções acima para começar a gerenciar a loja.</p>
+        </section>
+        
+        <section id="estoque" style="display:none;">
+            <h2>Gerenciamento de Estoque</h2>
+            <button onclick="adicionarProduto()">Adicionar Produto</button>
+            <ul id="lista-produtos"></ul>
+        </section>
+        
+        <section id="caixa" style="display:none;">
+            <h2>Gerenciamento de Caixa</h2>
+            <button onclick="registrarEntrada()">Registrar Entrada</button>
+            <button onclick="registrarSaida()">Registrar Saída</button>
+            <p id="saldo-caixa">Saldo atual: R$ 0.00</p>
+            <p id="ganhos-mensais">Ganho no mês: R$ 0.00</p>
+            <canvas id="grafico-caixa"></canvas>
+            <ul id="transacoes-caixa"></ul>
+        </section>
+
+        <section id="desempenho" style="display:none;">
+            <h2>Desempenho dos Funcionários</h2>
+            <button onclick="adicionarDesempenho()">Adicionar Desempenho</button>
+            <ul id="lista-desempenho"></ul>
+        </section>
+    </main>
+
+    <script>
+        function mostrarPagina(pagina) {
+            document.querySelectorAll("main section").forEach(section => {
+                section.style.display = "none";
+            });
+            document.getElementById(pagina).style.display = "block";
+        }
+
+        let produtos = [];
+        function adicionarProduto() {
+            const nome = prompt("Digite o nome do produto:");
+            const quantidade = parseInt(prompt("Digite a quantidade do produto:"), 10);
+            if (nome && quantidade) {
+                produtos.push({ nome, quantidade });
+                renderizarProdutos();
+            }
+        }
+
+        function renderizarProdutos() {
+            const lista = document.getElementById("lista-produtos");
+            lista.innerHTML = "";
+            produtos.forEach((produto) => {
+                const item = document.createElement("li");
+                item.textContent = `${produto.nome} - Quantidade: ${produto.quantidade}`;
+                lista.appendChild(item);
+            });
+        }
+
+        let saldo = 0;
+        let ganhosMensais = 0;
+        let transacoes = [];
+        const dataAtual = new Date();
+        const mesAtual = dataAtual.getMonth();
+
+        function registrarEntrada() {
+            const valor = parseFloat(prompt("Digite o valor da entrada:"));
+            if (valor) {
+                saldo += valor;
+                ganhosMensais += valor;
+                transacoes.push({ tipo: "Entrada", valor, data: new Date() });
+                atualizarCaixa();
+                atualizarGanhosMensais();
+                atualizarGrafico();
+            }
+        }
+
+        function registrarSaida() {
+            const valor = parseFloat(prompt("Digite o valor da saída:"));
+            if (valor) {
+                saldo -= valor;
+                transacoes.push({ tipo: "Saída", valor, data: new Date() });
+                atualizarCaixa();
+            }
+        }
+
+        function atualizarCaixa() {
+            const lista = document.getElementById("transacoes-caixa");
+            lista.innerHTML = "";
+            transacoes.forEach((transacao) => {
+                const item = document.createElement("li");
+                item.textContent = `${transacao.tipo} em ${transacao.data.toLocaleDateString()}: R$ ${transacao.valor.toFixed(2)}`;
+                lista.appendChild(item);
+            });
+            document.getElementById("saldo-caixa").textContent = `Saldo atual: R$ ${saldo.toFixed(2)}`;
+        }
+
+        function atualizarGanhosMensais() {
+            document.getElementById("ganhos-mensais").textContent = `Ganho no mês: R$ ${ganhosMensais.toFixed(2)}`;
+        }
+
+        function atualizarGrafico() {
+            const ctx = document.getElementById('grafico-caixa').getContext('2d');
+            if (window.grafico) {
+                window.grafico.destroy();
+            }
+            const labels = transacoes.map(t => t.data.toLocaleDateString());
+            const data = transacoes.map(t => t.valor);
+            window.grafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ganhos e Saídas',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valor (R$)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let desempenhos = [];
+        function adicionarDesempenho() {
+            const nome = prompt("Digite o nome do funcionário:");
+            const desempenho = prompt("Digite a descrição do desempenho:");
+            if (nome && desempenho) {
+                desempenhos.push({ nome, desempenho });
+                renderizarDesempenhos();
+            }
+        }
+
+        function renderizarDesempenhos() {
+            const lista = document.getElementById("lista-desempenho");
+            lista.innerHTML = "";
+            desempenhos.forEach((desempenho) => {
+                const item = document.createElement("li");
+                item.textContent = `${desempenho.nome}: ${desempenho.desempenho}`;
+                lista.appendChild(item);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            mostrarPagina('pagina-inicial');
+        });
+    </script>
+</body>
+</html>
